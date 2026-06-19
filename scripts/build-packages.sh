@@ -86,12 +86,18 @@ chmod 644 /lib/systemd/system/linux-bt-proxy.service
 mkdir -p /usr/share/doc/linux-bt-proxy
 cp usr/share/doc/linux-bt-proxy/* /usr/share/doc/linux-bt-proxy/
 
-# Reload systemd
+# Create the system user/group the service runs as, if it doesn't exist yet
+if ! id linuxbtproxy >/dev/null 2>&1; then
+    useradd -r -M -s /usr/sbin/nologin linuxbtproxy
+fi
+
+# Reload systemd, then enable and start the service
 systemctl daemon-reload
+systemctl enable linux-bt-proxy.service
+systemctl restart linux-bt-proxy.service
 
 echo "Installation complete!"
-echo "To start the service: sudo systemctl start linux-bt-proxy"
-echo "To enable at boot: sudo systemctl enable linux-bt-proxy"
+echo "Service is enabled and running. Check status with: sudo systemctl status linux-bt-proxy"
 EOF
 
 chmod +x "$TARBALL_DIR/install.sh"

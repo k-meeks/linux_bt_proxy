@@ -29,6 +29,28 @@ assets = [
     { source = "target/release/linux_bt_proxy", dest = "/usr/bin/linux_bt_proxy", mode = "755" },
     { source = "systemd/linux-bt-proxy.service", dest = "/lib/systemd/system/linux-bt-proxy.service", mode = "644" }
 ]
+post_install_script = """
+SERVICE=linux-bt-proxy
+SYSUSER=linuxbtproxy
+if ! id "$SYSUSER" >/dev/null 2>&1; then
+    useradd -r -M -s /usr/sbin/nologin "$SYSUSER"
+fi
+systemctl enable "$SERVICE".service || true
+if systemctl is-active --quiet "$SERVICE".service; then
+    systemctl restart "$SERVICE".service
+else
+    systemctl start "$SERVICE".service
+fi
+"""
+post_install_script_prog = ["/bin/sh", "-c"]
+pre_uninstall_script = """
+if [ "$1" = "0" ]; then
+    systemctl stop linux-bt-proxy.service || true
+    systemctl disable linux-bt-proxy.service || true
+fi
+"""
+pre_uninstall_script_prog = ["/bin/sh", "-c"]
+
 [package.metadata.generate-rpm.requires]
 systemd = "*"
 
