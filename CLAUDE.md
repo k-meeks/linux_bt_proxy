@@ -58,6 +58,18 @@ See README.rst for full install/deployment instructions.
   `CACHE_CLEARING`, and `REMOTE_CACHING` in HA's `BluetoothProxyFeature`
   flags — without it HA never attempts those operations regardless of the
   other bits. This proxy only sets `RAW_ADVERTISEMENTS` (`0x20`).
+- BlueZ's `SetDiscoveryFilter` defaults `DuplicateData` to `false`, which
+  makes the controller drop repeat advertisements with unchanged payload
+  *before* `bluetoothd` (and therefore this proxy's D-Bus listener) ever
+  sees them — only the first sighting of each device gets through. Fixed by
+  passing `DuplicateData: true` in the filter dict (`ble.rs`,
+  `try_start_discovery`).
+- Adapter hardware matters: BLE requires a Bluetooth 4.0+ controller. An
+  adapter can report `Discovering: yes` and `UP RUNNING` while only doing
+  classic BR/EDR inquiry scanning if its chipset predates LE (e.g. the
+  Broadcom BCM2070, HCI version 4 = Bluetooth 2.1+EDR). Confirm LE support
+  with `btmgmt info` — look for `le` in "supported settings" — before
+  debugging the proxy software itself.
 - `env_logger::init()` defaults to **no output at all** when `RUST_LOG` is
   unset — even `info!()` startup lines are silent by default. Use
   `RUST_LOG=linux_bt_proxy=debug` (module-scoped) to see this crate's debug

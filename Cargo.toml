@@ -1,6 +1,6 @@
 [package]
 name = "linux_bt_proxy"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 build = "build.rs"
 authors = ["Ross Reedstrom <ross@reedstrom.org>", "Kyle Meeks <github@ttbrewing.com>"]

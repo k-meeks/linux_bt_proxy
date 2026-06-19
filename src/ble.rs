@@ -9,7 +9,7 @@ use tokio::sync::broadcast::Sender;
 use zbus::fdo::PropertiesProxy;
 use zbus::match_rule::MatchRule;
 use zbus::names::InterfaceName;
-use zbus::zvariant::{Dict, ObjectPath, OwnedValue};
+use zbus::zvariant::{Dict, ObjectPath, OwnedValue, Value};
 use zbus::{message::Type, Connection, MessageStream, Proxy};
 
 use crate::api::api::{
@@ -281,9 +281,13 @@ async fn try_start_discovery(conn: &Connection, adapter_index: u16) -> zbus::Res
     )
     .await?;
 
-    proxy
-        .call_method("SetDiscoveryFilter", &(HashMap::<&str, OwnedValue>::new()))
-        .await?;
+    // DuplicateData defaults to false in BlueZ, which makes the controller
+    // drop repeat advertisements with unchanged data before bluetoothd (and
+    // therefore this listener) ever sees them. We want every advertisement,
+    // not just the first sighting of each device.
+    let mut filter = HashMap::new();
+    filter.insert("DuplicateData", Value::from(true));
+    proxy.call_method("SetDiscoveryFilter", &filter).await?;
     match proxy.call_method("StartDiscovery", &()).await {
         Ok(_) => info!("Discovery started"),
         Err(zbus::Error::MethodError(ref name, _, _))
