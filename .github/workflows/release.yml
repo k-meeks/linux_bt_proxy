@@ -63,8 +63,8 @@ jobs:
         
         **Debian/Ubuntu:**
         \`\`\`bash
-        wget https://github.com/k-meeks/linux_bt_proxy/releases/download/${{ steps.version.outputs.tag }}/linux-bt-proxy_${{ steps.version.outputs.version }}_amd64.deb
-        sudo dpkg -i linux-bt-proxy_${{ steps.version.outputs.version }}_amd64.deb
+        wget https://github.com/k-meeks/linux_bt_proxy/releases/download/${{ steps.version.outputs.tag }}/linux-bt-proxy_${{ steps.version.outputs.version }}-1_amd64.deb
+        sudo dpkg -i linux-bt-proxy_${{ steps.version.outputs.version }}-1_amd64.deb
         \`\`\`
         
         **Red Hat/Fedora/CentOS:**
