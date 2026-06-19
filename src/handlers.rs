@@ -8,6 +8,8 @@ use crate::api::api::{
     BluetoothConnectionsFreeResponse, //,
     //  SensorStateClass, ListEntitiesSensorResponse
     BluetoothLEAdvertisementResponse,
+    BluetoothLERawAdvertisement,
+    BluetoothLERawAdvertisementsResponse,
     ConnectRequest,
     ConnectResponse,
     DeviceInfoRequest,
@@ -50,10 +52,6 @@ impl SubscriptionFlags {
             regular: flags == 0 || (flags & SUBSCRIPTION_RAW_ADVERTISEMENTS) == 0,
             raw: (flags & SUBSCRIPTION_RAW_ADVERTISEMENTS) != 0,
         }
-    }
-
-    pub fn is_subscribed(&self) -> bool {
-        self.regular || self.raw
     }
 }
 
@@ -274,6 +272,21 @@ pub async fn forward_ble_advertisement(
     let ble_adv_res_type = get_message_id::<BluetoothLEAdvertisementResponse>();
     stream
         .write_all(&encode_response(ble_adv_res_type as u32, &adv)?)
+        .await?;
+    Ok(())
+}
+
+pub async fn forward_raw_ble_advertisement(
+    stream: &mut TcpStream,
+    adv: BluetoothLERawAdvertisement,
+) -> Result<(), std::io::Error> {
+    let resp = BluetoothLERawAdvertisementsResponse {
+        advertisements: vec![adv],
+        ..Default::default()
+    };
+    let resp_type = get_message_id::<BluetoothLERawAdvertisementsResponse>();
+    stream
+        .write_all(&encode_response(resp_type as u32, &resp)?)
         .await?;
     Ok(())
 }

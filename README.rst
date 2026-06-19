@@ -3,6 +3,8 @@ Linux Bluetooth Proxy for ESPHome
 
 This project provides a Bluetooth proxy daemon for ESPHome, designed to run on Linux systems. It listens for Bluetooth Low Energy (BLE) advertisements using the BlueZ stack and forwards them over TCP to ESPHome or other compatible clients. The proxy also advertises itself via mDNS as esphomelib for easy network discovery.
 
+This is a fork of `reedstrm/linux_bt_proxy <https://github.com/reedstrm/linux_bt_proxy>`_, with fixes for Home Assistant compatibility (see below).
+
 Current version cooperates with desktop and other system usage of the bluetooth hardware by using the bluez stack via dbus. Future work to access raw advertisements via
 HCI, bypassing any filtering or delay that bluez may be doing is being considered.
 
@@ -120,6 +122,7 @@ Project Structure
 
 - ``src/main.rs``: Entry point and CLI handling
 - ``src/ble.rs``: BLE advertisement listener logic
+- ``src/raw_adv.rs``: Raw BLE advertising-data (AD structure) reconstruction
 - ``src/mdns.rs``: mDNS service registration
 - ``src/server.rs``: TCP server implementation
 - ``src/context.rs``: Shared proxy context

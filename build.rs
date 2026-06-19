@@ -13,8 +13,10 @@ fn main() {
 
     fs::create_dir_all(&out_proto_dir).expect("Failed to create src/generated");
 
-    // Generate Rust .rs files using rust-protobuf
+    // Generate Rust .rs files using rust-protobuf's pure-Rust parser, so building
+    // this project doesn't require a system `protoc` binary.
     protobuf_codegen::Codegen::new()
+        .pure()
         .out_dir(&out_proto_dir)
         .inputs(&[
             proto_dir.join("api.proto"),
@@ -22,7 +24,7 @@ fn main() {
         ])
         .include(&proto_dir)
         .run()
-        .expect("protoc failed");
+        .expect("protobuf codegen failed");
 
     // Tell cargo when to rerun
     println!("cargo:rerun-if-changed=proto/api.proto");

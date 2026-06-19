@@ -61,19 +61,19 @@ jobs:
         
         **Debian/Ubuntu:**
         \`\`\`bash
-        wget https://github.com/reedstrm/linux_bt_proxy/releases/download/${{ steps.version.outputs.tag }}/linux-bt-proxy_${{ steps.version.outputs.version }}_amd64.deb
+        wget https://github.com/k-meeks/linux_bt_proxy/releases/download/${{ steps.version.outputs.tag }}/linux-bt-proxy_${{ steps.version.outputs.version }}_amd64.deb
         sudo dpkg -i linux-bt-proxy_${{ steps.version.outputs.version }}_amd64.deb
         \`\`\`
         
         **Red Hat/Fedora/CentOS:**
         \`\`\`bash
-        wget https://github.com/reedstrm/linux_bt_proxy/releases/download/${{ steps.version.outputs.tag }}/linux_bt_proxy-${{ steps.version.outputs.version }}-1.x86_64.rpm
+        wget https://github.com/k-meeks/linux_bt_proxy/releases/download/${{ steps.version.outputs.tag }}/linux_bt_proxy-${{ steps.version.outputs.version }}-1.x86_64.rpm
         sudo rpm -i linux_bt_proxy-${{ steps.version.outputs.version }}-1.x86_64.rpm
         \`\`\`
         
         **Arch Linux/Other:**
         \`\`\`bash
-        wget https://github.com/reedstrm/linux_bt_proxy/releases/download/${{ steps.version.outputs.tag }}/linux-bt-proxy-${{ steps.version.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
+        wget https://github.com/k-meeks/linux_bt_proxy/releases/download/${{ steps.version.outputs.tag }}/linux-bt-proxy-${{ steps.version.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
         tar -xzf linux-bt-proxy-${{ steps.version.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
         cd linux-bt-proxy-${{ steps.version.outputs.version }}-x86_64-unknown-linux-gnu
         sudo ./install.sh

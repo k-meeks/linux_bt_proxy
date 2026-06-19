@@ -4,6 +4,7 @@ mod context;
 mod handlers;
 mod mdns;
 mod proto;
+mod raw_adv;
 mod server;
 mod utils;
 
@@ -11,8 +12,11 @@ use clap::Parser;
 use gethostname::gethostname;
 use log::{info, warn};
 use mac_address::get_mac_address;
+use sd_notify::NotifyState;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::Duration;
+use tokio::net::TcpListener;
 use tokio::sync::broadcast;
 
 use crate::context::ProxyContext;
@@ -48,15 +52,45 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
     let cli = Cli::parse();
 
-    // Validate HCI adapter exists before proceeding
-    if utils::get_bt_mac(cli.hci).is_none() {
-        log::error!(
-            "Bluetooth adapter hci{} does not exist or is not accessible",
-            cli.hci
-        );
-        log::error!("Fatal: Check available adapters with 'hciconfig' or 'bluetoothctl list'");
-        std::process::exit(1);
+    let dbus_conn = match zbus::Connection::system().await {
+        Ok(conn) => conn,
+        Err(e) => {
+            log::error!("Failed to connect to system D-Bus: {e}");
+            log::error!("Fatal: Is dbus-daemon running?");
+            std::process::exit(1);
+        }
+    };
+
+    // Look up the adapter's MAC over D-Bus (org.bluez.Adapter1.Address) rather than
+    // a raw HCI socket, so the proxy doesn't need CAP_NET_RAW. Retry a few times in
+    // case bluetoothd is still starting up.
+    const MAC_LOOKUP_ATTEMPTS: u32 = 5;
+    let mut bt_mac = None;
+    for attempt in 1..=MAC_LOOKUP_ATTEMPTS {
+        match ble::get_adapter_mac(&dbus_conn, cli.hci).await {
+            Ok(mac) => {
+                bt_mac = Some(mac);
+                break;
+            }
+            Err(e) if attempt < MAC_LOOKUP_ATTEMPTS => {
+                log::warn!(
+                    "Could not read MAC for hci{} (attempt {attempt}/{MAC_LOOKUP_ATTEMPTS}): {e}; retrying...",
+                    cli.hci
+                );
+                tokio::time::sleep(Duration::from_secs(2)).await;
+            }
+            Err(e) => {
+                log::error!("Failed to get Bluetooth MAC for hci{}: {e}", cli.hci);
+                log::error!(
+                    "Fatal: Cannot access Bluetooth adapter hci{}. Check 'bluetoothctl list' and that bluetoothd is running.",
+                    cli.hci
+                );
+                std::process::exit(1);
+            }
+        }
     }
+    let bt_mac = bt_mac.expect("loop above always sets bt_mac or exits");
+    drop(dbus_conn);
 
     let mac: [u8; 6] = match cli.mac {
         Some(mac) => mac,
@@ -75,15 +109,6 @@ async fn main() -> std::io::Result<()> {
         },
     };
 
-    let bt_mac = match utils::get_bt_mac(cli.hci) {
-        Some(mac) => mac,
-        None => {
-            log::error!("Failed to get Bluetooth MAC for hci{}", cli.hci);
-            log::error!("Fatal: Cannot access Bluetooth adapter hci{}. Check if it exists and is accessible.", cli.hci);
-            std::process::exit(1);
-        }
-    };
-
     let ctx = Arc::new(ProxyContext {
         hostname: cli.hostname,
         port: cli.listen.port(),
@@ -95,45 +120,45 @@ async fn main() -> std::io::Result<()> {
 
     let (tx, rx) = broadcast::channel(100);
 
-    // first cut: use bluez stack, ask for active scanning
-    let mut ble_handle = tokio::spawn(ble::run_bluez_advertisement_listener(cli.hci, tx.clone()));
-
-    // Check if BLE listener started successfully
-    tokio::select! {
-        _ = tokio::time::sleep(tokio::time::Duration::from_millis(100)) => {
-            // BLE listener is still running after 100ms, assume it started successfully
-        }
-        result = &mut ble_handle => {
-            match result {
-                Ok(Err(e)) => {
-                    log::error!("Failed to start BLE advertisement listener: {e}");
-                    log::error!("Fatal: Cannot connect to BlueZ D-Bus service. Check if bluetoothd is running.");
-                    std::process::exit(1);
-                }
-                Err(e) => {
-                    log::error!("BLE advertisement listener task panicked: {e}");
-                    log::error!("Fatal: Critical error in BLE listener.");
-                    std::process::exit(1);
-                }
-                Ok(Ok(())) => {
-                    log::error!("BLE advertisement listener exited unexpectedly");
-                    log::error!("Fatal: BLE listener stopped.");
-                    std::process::exit(1);
-                }
-            }
-        }
-    }
-
+    // Supervised: logs and retries with backoff on failure instead of dying silently.
+    tokio::spawn(ble::run_supervised(cli.hci, tx.clone()));
     info!("Listening for ble advertisements on hci{}", cli.hci);
 
     mdns::start_mdns(ctx.clone()).unwrap_or_else(|e| {
         warn!("Critical error: failed to register mDNS service: {e}");
         std::process::exit(1);
     });
-
     info!("mDNS service registered");
 
-    if let Err(e) = server::run_tcp_server(ctx.clone(), cli.listen, rx).await {
+    let listener = match TcpListener::bind(cli.listen).await {
+        Ok(listener) => listener,
+        Err(e) => {
+            log::error!("Failed to bind TCP listener on {}: {e}", cli.listen);
+            std::process::exit(1);
+        }
+    };
+    info!("Listening on {}", cli.listen);
+
+    // Tell systemd (if we're running under it, Type=notify) that startup is complete.
+    let _ = sd_notify::notify(&[
+        NotifyState::Ready,
+        NotifyState::Status("Serving ESPHome API"),
+    ]);
+
+    // If systemd configured a watchdog timeout (WatchdogSec=), ping it well within
+    // that interval so a fully wedged process gets noticed and restarted.
+    if let Some(timeout) = sd_notify::watchdog_enabled() {
+        let ping_interval = timeout / 2;
+        tokio::spawn(async move {
+            let mut ticker = tokio::time::interval(ping_interval);
+            loop {
+                ticker.tick().await;
+                let _ = sd_notify::notify(&[NotifyState::Watchdog]);
+            }
+        });
+    }
+
+    if let Err(e) = server::run_tcp_server(ctx.clone(), listener, rx).await {
         log::error!("TCP server error: {e}");
         log::error!("Fatal: TCP server failed to start or crashed.");
         std::process::exit(1);

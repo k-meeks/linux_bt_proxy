@@ -3,13 +3,14 @@ name = "linux_bt_proxy"
 version = "0.1.0"
 edition = "2021"
 build = "build.rs"
-authors = ["Ross Reedstrom <ross@reedstrom.org>"]
+authors = ["Ross Reedstrom <ross@reedstrom.org>", "Kyle Meeks <github@ttbrewing.com>"]
 description = "A Bluetooth advertisement proxy for Home Assistant using the ESPHome API"
 license = "GPL-3.0-or-later"
+repository = "https://github.com/k-meeks/linux_bt_proxy"
 
 [package.metadata.deb]
 name = "linux-bt-proxy"
-maintainer = "Ross Reedstrom <ross@reedstrom.org>"
+maintainer = "Kyle Meeks <github@ttbrewing.com>"
 depends = "systemd"
 section = "utils"
 priority = "optional"
@@ -41,10 +42,10 @@ log = "0.4"
 env_logger = "0.11"
 bytes = "1"
 gethostname = "1.0.2"
-libc = "0.2.174"
 zbus  = "5"
 anyhow = "1.0.98"
 futures-util = "0.3.31"
+sd-notify = "0.5.0"
 
 [build-dependencies]
 protobuf = "3.7"

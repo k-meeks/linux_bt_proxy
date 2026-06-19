@@ -4,10 +4,11 @@ After=network.target bluetooth.service
 Requires=bluetooth.service
 
 [Service]
-Type=simple
+Type=notify
 ExecStart=/usr/bin/linux_bt_proxy
 Restart=on-failure
 RestartSec=5s
+WatchdogSec=30s
 User=linuxbtproxy
 Group=linuxbtproxy
 SupplementaryGroups=bluetooth

@@ -1,16 +1,15 @@
 use bytes::BytesMut;
 use log::{debug, info, warn};
-use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::io::AsyncReadExt;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::broadcast;
 
-use crate::api::api::BluetoothLEAdvertisementResponse;
+use crate::ble::BleAdvertisement;
 use crate::context::ProxyContext;
 use crate::handlers::{
     connect_request, device_info_request, disconnect_request, forward_ble_advertisement,
-    hello_request, list_entities_request, ping_request,
+    forward_raw_ble_advertisement, hello_request, list_entities_request, ping_request,
     subscribe_bluetooth_connections_free_request, subscribe_bluetooth_le_advertisements_request,
     SubscriptionFlags,
 };
@@ -18,12 +17,9 @@ use crate::proto::next_message;
 
 pub async fn run_tcp_server(
     ctx: Arc<ProxyContext>,
-    addr: SocketAddr,
-    rx: broadcast::Receiver<BluetoothLEAdvertisementResponse>,
+    listener: TcpListener,
+    rx: broadcast::Receiver<BleAdvertisement>,
 ) -> std::io::Result<()> {
-    let listener = TcpListener::bind(addr).await?;
-    info!("Listening on {addr}");
-
     loop {
         let (stream, peer) = listener.accept().await?;
         info!("New connection from {peer}");
@@ -40,7 +36,7 @@ pub async fn run_tcp_server(
 async fn handle_client(
     ctx: Arc<ProxyContext>,
     mut stream: TcpStream,
-    rx: &mut broadcast::Receiver<BluetoothLEAdvertisementResponse>,
+    rx: &mut broadcast::Receiver<BleAdvertisement>,
 ) -> std::io::Result<()> {
     let mut buf = BytesMut::with_capacity(1024);
 
@@ -92,10 +88,14 @@ async fn handle_client(
             ble_msg = rx.recv() => {
                 match ble_msg {
                     Ok(advert) => {
-                        if subscription_flags.is_subscribed() {
+                        if subscription_flags.raw {
+                            debug!("Forwarding raw BLE advertisement to {} (flags: {:?})",
+                                   stream.peer_addr()?.ip(), subscription_flags);
+                            forward_raw_ble_advertisement(&mut stream, advert.raw).await?;
+                        } else if subscription_flags.regular {
                             debug!("Forwarding BLE advertisement to {} (flags: {:?})",
                                    stream.peer_addr()?.ip(), subscription_flags);
-                            forward_ble_advertisement(&mut stream, advert).await?;
+                            forward_ble_advertisement(&mut stream, advert.legacy).await?;
                         }
                     },
                     Err(broadcast::error::RecvError::Lagged(n)) => {
