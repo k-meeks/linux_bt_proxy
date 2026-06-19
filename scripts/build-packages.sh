@@ -45,7 +45,7 @@ if ! command -v cargo-deb &> /dev/null; then
     echo "Installing cargo-deb..."
     cargo install cargo-deb
 fi
-cargo deb --output dist/
+cargo deb --target "$TARGET" --output dist/
 
 # Build RPM package
 echo "Building RPM package..."
@@ -53,7 +53,7 @@ if ! command -v cargo-generate-rpm &> /dev/null; then
     echo "Installing cargo-generate-rpm..."
     cargo install cargo-generate-rpm
 fi
-cargo generate-rpm --output dist/
+cargo generate-rpm --target "$TARGET" --output dist/
 
 # Create tarball for Arch users
 echo "Building tarball..."
