@@ -186,7 +186,7 @@ Project Structure
 Known Limitations
 ------------------
 
-The proxy advertises the ``PAIRING`` and ``CACHE_CLEARING`` Bluetooth proxy features, but only advertisement forwarding (legacy and raw) is implemented; per-device GATT connections, pairing, and cache-clearing requests are not handled. This is inherited from upstream and unrelated to advertisement-only use cases (e.g. BLE sensor/thermometer monitoring), but if your setup relies on Home Assistant connecting directly to a BLE peripheral through this proxy, that path isn't implemented yet.
+This proxy only implements BLE advertisement forwarding (legacy and raw). It does not advertise or support ``ACTIVE_CONNECTIONS``, ``PAIRING``, ``CACHE_CLEARING``, or ``REMOTE_CACHING`` — there is no support for Home Assistant establishing a GATT connection to a BLE peripheral through this proxy (used by things like BLE locks or displays that need two-way communication, as opposed to passive sensors that just broadcast advertisements). This is fine for advertisement/sensor-monitoring use cases (e.g. BLE thermometers), which only need passive scanning.
 
 License
 -------

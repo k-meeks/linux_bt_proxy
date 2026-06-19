@@ -189,7 +189,10 @@ pub async fn device_info_request(
         // project_name: "linux_bt_proxy".to_string(),
         // project_version: ctx.version.to_string(),
         legacy_bluetooth_proxy_version: 5,
-        bluetooth_proxy_feature_flags: 0x08 | 0x10 | 0x20, // 0x38
+        // Only RAW_ADVERTISEMENTS (0x20) is implemented. PAIRING (0x08) and
+        // CACHE_CLEARING (0x10) require ACTIVE_CONNECTIONS support, which this
+        // proxy doesn't have, so they're not advertised here.
+        bluetooth_proxy_feature_flags: 0x20,
 
         friendly_name: format!("Linux BT Proxy: {}", ctx.hostname),
 
