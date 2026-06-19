@@ -26,41 +26,43 @@ No special capabilities or root privileges are required at runtime — the daemo
 Installation
 ------------
 
-**Debian/Ubuntu (DEB packages)**
+**From source**
 
-System packages for Debian-based systems (Debian, Ubuntu, Pop-OS) are provided as part of the release package:
+This is the most reliable install path, since it doesn't depend on a tagged release being available. Requires a Rust toolchain (see `Building`_) and a Linux system with BlueZ:
 
 .. code-block:: bash
 
+   cargo build --release
+   sudo cp target/release/linux_bt_proxy /usr/bin/
+   sudo cp systemd/linux-bt-proxy.service /lib/systemd/system/
+   sudo useradd -r -M -s /usr/sbin/nologin linuxbtproxy
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now linux-bt-proxy
+
+**Pre-built packages (DEB/RPM/tarball)**
+
+Packaged releases are published on the `Releases page <https://github.com/k-meeks/linux_bt_proxy/releases>`_ when a version is tagged. If one is available for the version you want:
+
+.. code-block:: bash
+
+   # Debian/Ubuntu/Pop-OS
    sudo dpkg -i linux-bt-proxy_*.deb
 
-**Red Hat/Fedora/CentOS (RPM packages)**
+   # Red Hat/Fedora/CentOS
+   sudo rpm -i linux-bt-proxy-*.rpm    # or: sudo dnf install linux-bt-proxy-*.rpm
 
-RPM packages are available for Red Hat-based systems:
-
-.. code-block:: bash
-
-   sudo rpm -i linux-bt-proxy-*.rpm
-   # or with dnf/yum:
-   sudo dnf install linux-bt-proxy-*.rpm
-
-**Arch Linux (Tarball)**
-
-For Arch Linux and other distributions, extract the tarball and run the install script:
-
-.. code-block:: bash
-
+   # Arch Linux / other distributions
    tar -xzf linux-bt-proxy-*-x86_64-unknown-linux-gnu.tar.gz
    cd linux-bt-proxy-*
    sudo ./install.sh
 
-All three package formats install the binary and systemd unit, create an unprivileged ``linuxbtproxy`` system user (a member of the ``bluetooth`` group via the unit's ``SupplementaryGroups=``), and enable and start the service automatically. There's nothing further to run after installation — check that it came up with:
+All three package formats install the binary and systemd unit, create an unprivileged ``linuxbtproxy`` system user (a member of the ``bluetooth`` group via the unit's ``SupplementaryGroups=``), and enable and start the service automatically — there's nothing further to run. To remove a tarball install, run ``sudo ./uninstall.sh`` from the extracted directory; DEB/RPM removal is handled by ``dpkg -r``/``rpm -e`` as usual.
+
+Either way, check that the service came up with:
 
 .. code-block:: bash
 
    sudo systemctl status linux-bt-proxy
-
-To remove a tarball install, run ``sudo ./uninstall.sh`` from the extracted directory; DEB/RPM removal is handled by ``dpkg -r``/``rpm -e`` as usual.
 
 Configuration
 --------------
