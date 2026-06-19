@@ -1,6 +1,6 @@
 [package]
 name = "linux_bt_proxy"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 build = "build.rs"
 authors = ["Ross Reedstrom <ross@reedstrom.org>", "Kyle Meeks <github@ttbrewing.com>"]
@@ -15,7 +15,7 @@ depends = "systemd"
 section = "utils"
 priority = "optional"
 assets = [
-    ["target/release/linux_bt_proxy", "usr/bin/", "755"],
+    ["target/x86_64-unknown-linux-musl/release/linux_bt_proxy", "usr/bin/", "755"],
     ["systemd/linux-bt-proxy.service", "lib/systemd/system/", "644"]
 ]
 maintainer-scripts = "debian"
@@ -26,7 +26,7 @@ Runs as a daemon, forwarding BLE advertisements via TCP to Home Assistant.
 
 [package.metadata.generate-rpm]
 assets = [
-    { source = "target/release/linux_bt_proxy", dest = "/usr/bin/linux_bt_proxy", mode = "755" },
+    { source = "target/x86_64-unknown-linux-musl/release/linux_bt_proxy", dest = "/usr/bin/linux_bt_proxy", mode = "755" },
     { source = "systemd/linux-bt-proxy.service", dest = "/lib/systemd/system/linux-bt-proxy.service", mode = "644" }
 ]
 post_install_script = """

@@ -11,6 +11,12 @@ fi
 
 echo "=== Linux Bluetooth Proxy Package Builder ==="
 
+# Build statically against musl so the binary doesn't depend on the host's
+# glibc version (glibc binaries built on a newer distro won't run on an
+# older one; a static musl binary runs on any Linux kernel/distro).
+TARGET="x86_64-unknown-linux-musl"
+BINARY="target/$TARGET/release/linux_bt_proxy"
+
 # Get version from Cargo.toml
 VERSION=$(grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
 echo "Building packages for version $VERSION"
@@ -20,15 +26,16 @@ mkdir -p dist
 
 # Build release binary (unless skipped)
 if [[ "$SKIP_BUILD" == "false" ]]; then
-    echo "Building release binary..."
-    cargo build --release
+    echo "Building release binary ($TARGET)..."
+    rustup target add "$TARGET"
+    cargo build --release --target "$TARGET"
 else
     echo "Skipping build (using existing binary)"
 fi
 
 # Check if binary exists
-if [[ ! -f "target/release/linux_bt_proxy" ]]; then
-    echo "Error: Release binary not found. Run 'cargo build --release' first."
+if [[ ! -f "$BINARY" ]]; then
+    echo "Error: Release binary not found. Run 'cargo build --release --target $TARGET' first."
     exit 1
 fi
 
@@ -50,14 +57,14 @@ cargo generate-rpm --output dist/
 
 # Create tarball for Arch users
 echo "Building tarball..."
-TARBALL_NAME="linux-bt-proxy-${VERSION}-x86_64-unknown-linux-gnu"
+TARBALL_NAME="linux-bt-proxy-${VERSION}-${TARGET}"
 TARBALL_DIR="dist/${TARBALL_NAME}"
 
 # Create temporary directory structure
 mkdir -p "$TARBALL_DIR"/{usr/bin,lib/systemd/system,usr/share/doc/linux-bt-proxy}
 
 # Copy files
-cp target/release/linux_bt_proxy "$TARBALL_DIR/usr/bin/"
+cp "$BINARY" "$TARBALL_DIR/usr/bin/"
 cp systemd/linux-bt-proxy.service "$TARBALL_DIR/lib/systemd/system/"
 cp README.rst "$TARBALL_DIR/usr/share/doc/linux-bt-proxy/"
 cp LICENSE "$TARBALL_DIR/usr/share/doc/linux-bt-proxy/"

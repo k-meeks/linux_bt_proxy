@@ -22,18 +22,19 @@ jobs:
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         toolchain: stable
-        
+        target: x86_64-unknown-linux-musl
+
     - name: Install packaging tools
       run: |
         cargo install cargo-deb cargo-generate-rpm
-        
+
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libbluetooth-dev pkg-config
-        
+        sudo apt-get install -y libbluetooth-dev pkg-config musl-tools
+
     - name: Build release binary
-      run: cargo build --release
+      run: cargo build --release --target x86_64-unknown-linux-musl
       
     - name: Extract version from tag
       id: version
@@ -75,9 +76,9 @@ jobs:
         
         **Arch Linux/Other:**
         \`\`\`bash
-        wget https://github.com/k-meeks/linux_bt_proxy/releases/download/${{ steps.version.outputs.tag }}/linux-bt-proxy-${{ steps.version.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
-        tar -xzf linux-bt-proxy-${{ steps.version.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
-        cd linux-bt-proxy-${{ steps.version.outputs.version }}-x86_64-unknown-linux-gnu
+        wget https://github.com/k-meeks/linux_bt_proxy/releases/download/${{ steps.version.outputs.tag }}/linux-bt-proxy-${{ steps.version.outputs.version }}-x86_64-unknown-linux-musl.tar.gz
+        tar -xzf linux-bt-proxy-${{ steps.version.outputs.version }}-x86_64-unknown-linux-musl.tar.gz
+        cd linux-bt-proxy-${{ steps.version.outputs.version }}-x86_64-unknown-linux-musl
         sudo ./install.sh
         \`\`\`
         

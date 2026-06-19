@@ -11,6 +11,7 @@ This is a fork of `reedstrm/linux_bt_proxy <https://github.com/reedstrm/linux_bt
 - Restarts the BLE listener with backoff instead of leaving the proxy connected-but-blind after a BlueZ hiccup
 - Integrates with systemd (``sd_notify`` readiness and watchdog pings) so a wedged process is detected and restarted automatically
 - Builds with a pure-Rust protobuf toolchain, so a system ``protoc`` binary is no longer required
+- Packaged releases are statically linked against musl instead of glibc, so they run on any x86_64 Linux distro/version regardless of its glibc version
 
 It uses the BlueZ stack via D-Bus, so it cooperates with desktop and other system usage of the Bluetooth hardware rather than taking exclusive control of it.
 
@@ -52,7 +53,7 @@ Packaged releases are published on the `Releases page <https://github.com/k-meek
    sudo rpm -i linux-bt-proxy-*.rpm    # or: sudo dnf install linux-bt-proxy-*.rpm
 
    # Arch Linux / other distributions
-   tar -xzf linux-bt-proxy-*-x86_64-unknown-linux-gnu.tar.gz
+   tar -xzf linux-bt-proxy-*-x86_64-unknown-linux-musl.tar.gz
    cd linux-bt-proxy-*
    sudo ./install.sh
 
@@ -149,10 +150,11 @@ This will create packages in the ``dist/`` directory:
 - ``*.rpm`` - Red Hat/Fedora/CentOS packages
 - ``*.tar.gz`` - Generic tarball for Arch Linux and other distributions
 
-Prerequisites for packaging:
+Packages are built against the ``x86_64-unknown-linux-musl`` target (static linking, so the resulting binary doesn't depend on the host's glibc version); the script adds the target via ``rustup`` automatically, but the musl linker itself needs to be present on the build machine first:
 
 .. code-block:: bash
 
+   sudo apt install musl-tools   # Debian/Ubuntu; install the musl-gcc equivalent for your distro
    cargo install cargo-deb cargo-generate-rpm
 
 Releasing
